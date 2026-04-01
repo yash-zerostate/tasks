@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db.config');
 const swaggerUI = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables from .env file
 dotenv.config();
@@ -15,8 +17,18 @@ const app = express();
 connectDB();
 
 // Middleware
+app.use(helmet()); 
 app.use(cors({ origin: "*" }));
 app.use(express.json());
+
+// Rate Limiting for Auth
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
+});
+
+app.use('/api/auth', authLimiter);
 
 // Swagger documentation options
 const swaggerOptions = {

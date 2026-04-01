@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { NgClass } from '@angular/common';
 
 @Component({
@@ -10,6 +11,7 @@ import { NgClass } from '@angular/common';
 })
 export class NavbarComponent {
   authService = inject(AuthService);
+  themeService = inject(ThemeService);
   router = inject(Router);
 
   // Signal for mobile menu visibility

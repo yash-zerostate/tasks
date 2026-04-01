@@ -5,11 +5,12 @@ import { RouterLink } from '@angular/router';
 import { NgClass, DatePipe } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 import { FormsModule } from '@angular/forms';
+import { CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop';
 import { DeadlineAlertPipe } from '../../../shared/pipes/deadline-alert.pipe';
 
 @Component({
     selector: 'app-task-list',
-    imports: [RouterLink, NgClass, DatePipe, DeadlineAlertPipe, FormsModule],
+    imports: [RouterLink, NgClass, DatePipe, DeadlineAlertPipe, FormsModule, CdkDropList, CdkDrag],
     templateUrl: './task-list.component.html',
 })
 export class TaskListComponent implements OnInit {
@@ -233,5 +234,63 @@ export class TaskListComponent implements OnInit {
     if (!task.subtasks || task.subtasks.length === 0) return '';
     const completed = task.subtasks.filter(s => s.completed).length;
     return `${completed}/${task.subtasks.length} subtasks`;
+  }
+
+  getSubtaskProgressPercentage(task: Task): number {
+    if (!task.subtasks || task.subtasks.length === 0) return 0;
+    const completed = task.subtasks.filter(s => s.completed).length;
+    return (completed / task.subtasks.length) * 100;
+  }
+
+  onTaskDrop(event: CdkDragDrop<Task[]>) {
+    if (event.previousContainer === event.container) {
+      // Reordering within the same list
+      const items = [...event.container.data];
+      moveItemInArray(items, event.previousIndex, event.currentIndex);
+      
+      // Update the correct signal based on which list was reordered
+      if (event.container.id === 'pendingList') {
+        this.pendingPaginatedTasks.set(items);
+      } else {
+        this.completedPaginatedTasks.set(items);
+      }
+    } else {
+      // Moving between lists
+      const previousData = [...event.previousContainer.data];
+      const currentData = [...event.container.data];
+      
+      transferArrayItem(
+        previousData,
+        currentData,
+        event.previousIndex,
+        event.currentIndex
+      );
+
+      const movedTask = currentData[event.currentIndex];
+
+      // Update local UI state immediately for smooth UX
+      if (event.previousContainer.id === 'pendingList') {
+        this.pendingPaginatedTasks.set(previousData);
+        this.completedPaginatedTasks.set(currentData);
+        movedTask.completed = true;
+      } else {
+        this.completedPaginatedTasks.set(previousData);
+        this.pendingPaginatedTasks.set(currentData);
+        movedTask.completed = false;
+      }
+
+      // API Call to update the backend
+      this.taskService.updateTask(movedTask._id!, { completed: movedTask.completed }).subscribe({
+         next: () => {
+            // Re-fetch to guarantee sync with server (including pagination calculations)
+            this.refreshData();
+         },
+         error: (err) => {
+            console.error('Failed to update task status on drag drop', err);
+            // Revert changes on error
+            this.refreshData();
+         }
+      });
+    }
   }
 }
