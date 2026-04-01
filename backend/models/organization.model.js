@@ -87,6 +87,16 @@ const organizationSchema = new mongoose.Schema({
   }]
 }, { timestamps: true });
 
+organizationSchema.pre('findOneAndDelete', async function(next) {
+  const organizationId = this.getQuery()._id;
+  if (organizationId) {
+    await mongoose.model('Task').deleteMany({ organization: organizationId });
+    await mongoose.model('Activity').deleteMany({ organization: organizationId });
+    await mongoose.model('User').updateMany({ organization: organizationId }, { $unset: { organization: 1 } });
+  }
+  next();
+});
+
 const Organization = mongoose.model('Organization', organizationSchema);
 
 module.exports = Organization;

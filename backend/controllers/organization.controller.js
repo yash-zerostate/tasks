@@ -294,6 +294,18 @@ exports.addMemberToOrganization = async (req, res) => {
       return errorResponse(res, 404, "Organization not found");
     }
 
+    const currentUser = await require('../models/user.model').findById(req.user._id);
+
+    // Prevent cross-tenant addition unless super
+    if (currentUser.role !== 'super') {
+      const memberRecord = organization.members.find(member =>
+        member.user.toString() === req.user._id.toString()
+      );
+      if (!memberRecord || (memberRecord.role !== 'admin' && organization.owner.toString() !== req.user._id.toString())) {
+        return errorResponse(res, 403, "Not authorized to add members to this organization");
+      }
+    }
+
     // Check if user is already a member
     const isAlreadyMember = organization.members.some(member =>
       member.user.toString() === userId

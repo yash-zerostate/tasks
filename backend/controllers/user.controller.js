@@ -7,9 +7,18 @@ exports.getUsers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const users = await User.find().select("-password").skip(skip).limit(limit);
-    // Get total count of all users for pagination
-    const totalUsers = await User.countDocuments();
+    const currentUser = await User.findById(req.user._id);
+    let query = {};
+
+    if (currentUser.role !== 'super') {
+      if (!currentUser.organization) {
+        return errorResponse(res, 403, "User not associated with any organization");
+      }
+      query = { organization: currentUser.organization };
+    }
+
+    const users = await User.find(query).skip(skip).limit(limit);
+    const totalUsers = await User.countDocuments(query);
 
     return successResponse(res, 200, "Users retrieved successfully", {
       users,
@@ -121,41 +130,34 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { email, role } = req.body;
     
-    // Check if the user exists
     const user = await User.findById(id);
-    
     if (!user) {
       return errorResponse(res, 404, "User not found");
     }
     
-    // Check permissions - only admins can update other users' roles
-    // Regular users can only update their own details but not their role
-    if (req.user._id.toString() !== id && req.user.role !== 'admin') {
-      return errorResponse(res, 403, "Not authorized to update this user");
+    const currentUser = await User.findById(req.user._id);
+    
+    if (req.user._id.toString() !== id) {
+      if (currentUser.role !== 'super') {
+        if (currentUser.role !== 'admin' || !currentUser.organization || user.organization?.toString() !== currentUser.organization.toString()) {
+          return errorResponse(res, 403, "Not authorized to update this user");
+        }
+      }
     }
     
-    // Prepare update object
     const updateData = {};
+    if (email) updateData.email = email;
     
-    if (email) {
-      updateData.email = email;
-    }
-    
-    // Only admins can change roles
-    if (role && req.user.role === 'admin') {
+    if (role && (currentUser.role === 'admin' || currentUser.role === 'super') && req.user._id.toString() !== id) {
       updateData.role = role;
     }
     
-    // Update the user
     const updatedUser = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+      id, updateData, { new: true, runValidators: true }
+    );
     
     return successResponse(res, 200, "User updated successfully", updatedUser);
   } catch (error) {
-    // Handle duplicate email error
     if (error.code === 11000) {
       return errorResponse(res, 400, "Email already exists");
     }
@@ -167,19 +169,22 @@ exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Check if the user exists
     const user = await User.findById(id);
-    
     if (!user) {
       return errorResponse(res, 404, "User not found");
     }
     
-    // Prevent admins from deleting themselves as a safety measure
     if (id === req.user._id.toString()) {
       return errorResponse(res, 400, "You cannot delete your own account");
     }
+
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser.role !== 'super') {
+      if (currentUser.role !== 'admin' || !currentUser.organization || user.organization?.toString() !== currentUser.organization.toString()) {
+        return errorResponse(res, 403, "Not authorized to delete this user");
+      }
+    }
     
-    // Delete the user
     await User.findByIdAndDelete(id);
     
     return successResponse(res, 200, "User deleted successfully");

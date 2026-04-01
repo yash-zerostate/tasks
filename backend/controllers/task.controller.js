@@ -8,10 +8,16 @@ exports.createTask = async (req, res) => {
   try {
     const { title, description, deadline, priority, userId } = req.body;
     
-    // Get the organization from the assigned user
     const assignedUser = await User.findById(userId);
     if (!assignedUser) {
       return errorResponse(res, 404, "Assigned user not found");
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser.role !== 'super') {
+      if (!currentUser.organization || !assignedUser.organization || assignedUser.organization.toString() !== currentUser.organization.toString()) {
+         return errorResponse(res, 403, "Cannot assign tasks to users outside your organization");
+      }
     }
     
     const newTask = new Task({
@@ -226,14 +232,18 @@ exports.updateTask = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Find the task first to ensure it exists
     const task = await Task.findById(id);
-    
     if (!task) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'Task not found'
-      });
+      return res.status(404).json({ status: 'error', message: 'Task not found' });
+    }
+
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser.role !== 'super') {
+      if (task.user.toString() !== req.user._id.toString()) {
+        if (currentUser.role !== 'admin' || !currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
+           return res.status(403).json({ status: 'error', message: 'Not authorized to update this task' });
+        }
+      }
     }
     
     // Determine action and details for logging
@@ -289,10 +299,13 @@ exports.deleteTask = async (req, res) => {
       return errorResponse(res, 404, "Task not found");
     }
     
-    // Check if the user is authorized to delete this task
-    // Allow task creator or admin to delete
-    if (task.user.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return errorResponse(res, 403, "Not authorized to delete this task");
+    const currentUser = await User.findById(req.user._id);
+    if (currentUser.role !== 'super') {
+      if (task.user.toString() !== req.user._id.toString()) {
+        if (currentUser.role !== 'admin' || !currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
+           return errorResponse(res, 403, "Not authorized to delete this task");
+        }
+      }
     }
     
     // Log activity

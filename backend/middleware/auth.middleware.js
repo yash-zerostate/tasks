@@ -27,7 +27,7 @@ const auth = (req, res, next) => {
 const isAdmin = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
-    if (user.role !== 'admin' && user.role !== 'super') {
+    if (!user || (user.role !== 'admin' && user.role !== 'super')) {
       return res.status(403).send({ error: 'Access denied' });
     }
     next();

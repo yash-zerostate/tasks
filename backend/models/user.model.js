@@ -42,6 +42,7 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
+    select: false,
   },
   organization: {
     type: mongoose.Schema.Types.ObjectId,
