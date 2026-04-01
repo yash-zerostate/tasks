@@ -51,13 +51,14 @@ exports.getMyOrganizations = async (req, res) => {
 
 exports.getMyOrganization = async (req, res) => {
   try {
-    const user = await require('../models/user.model').findById(req.user._id).populate('organization');
+    const User = require('../models/user.model');
+    const user = await User.findById(req.user._id).populate('organization');
     if (!user || !user.organization) {
-      return res.status(404).json({ message: "Organization not found" });
+      return errorResponse(res, 404, "Organization not found");
     }
-    return res.status(200).json({ organization: user.organization });
+    return successResponse(res, 200, "Organization retrieved successfully", user.organization);
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    return errorResponse(res, 500, error.message);
   }
 };
 
@@ -72,8 +73,7 @@ exports.getOrganizationById = async (req, res) => {
       return errorResponse(res, 404, "Organization not found");
     }
 
-    // Allow super admin to access any organization
-    const user = await require('../models/user.model').findById(req.user._id);
+    const user = req.currentUser;
     if (user.role === 'super') {
       return successResponse(res, 200, "Organization retrieved successfully", organization);
     }
@@ -258,13 +258,12 @@ exports.getAllOrganizations = async (req, res) => {
 exports.getOrganizationMembers = async (req, res) => {
   try {
     const organization = await Organization.findById(req.params.id)
-      .populate('members.user', 'email name');
+      .populate('members.user', 'email');
 
     if (!organization) {
       return errorResponse(res, 404, "Organization not found");
     }
 
-    // Check if user is a member of the organization
     const isMember = organization.members.some(member =>
       member.user._id.toString() === req.user._id.toString()
     );
@@ -279,10 +278,9 @@ exports.getOrganizationMembers = async (req, res) => {
   }
 };
 
-// Add member to organization (renamed from addMember for consistency with route)
 exports.addMemberToOrganization = async (req, res) => {
   try {
-    const { userId, role = 'user' } = req.body;
+    const { userId, role = 'member' } = req.body;
 
     if (!userId) {
       return errorResponse(res, 400, "User ID is required");
@@ -294,7 +292,7 @@ exports.addMemberToOrganization = async (req, res) => {
       return errorResponse(res, 404, "Organization not found");
     }
 
-    const currentUser = await require('../models/user.model').findById(req.user._id);
+    const currentUser = req.currentUser;
 
     // Prevent cross-tenant addition unless super
     if (currentUser.role !== 'super') {
@@ -323,7 +321,7 @@ exports.addMemberToOrganization = async (req, res) => {
     await organization.save();
 
     const updatedOrganization = await Organization.findById(req.params.id)
-      .populate('members.user', 'email name');
+      .populate('members.user', 'email');
 
     successResponse(res, 200, "Member added successfully", updatedOrganization);
   } catch (error) {

@@ -7,6 +7,7 @@ import { Location } from '@angular/common';
 import { NotificationService } from '../../../services/notification.service';
 import { DeadlineAlertPipe } from '../../../shared/pipes/deadline-alert.pipe';
 import { ReplacePipe } from '../../../shared/pipes/replace.pipe';
+import { AiService } from '../../../services/ai.service';
 
 @Component({
     selector: 'app-task-detail',
@@ -20,12 +21,15 @@ export class TaskDetailComponent implements OnInit {
   error = signal<string | null>(null);
   deleting = signal<boolean>(false);
   activities = signal<any[]>([]);
+  aiInsight = signal<string | null>(null);
+  aiInsightLoading = signal<boolean>(false);
 
   router = inject(Router);
   taskService = inject(TaskService);
   route = inject(ActivatedRoute);
   location = inject(Location);
   notificationService = inject(NotificationService);
+  aiService = inject(AiService);
 
   constructor() {}
 
@@ -158,6 +162,31 @@ export class TaskDetailComponent implements OnInit {
         }
       });
     }
+  }
+
+  getAiInsight() {
+    const t = this.task();
+    if (!t) return;
+
+    this.aiInsightLoading.set(true);
+    this.aiInsight.set(null);
+
+    const context = `Task: "${t.title}"\nDescription: ${t.description || 'None'}\nPriority: ${t.priority}\nStatus: ${t.completed ? 'Completed' : 'In Progress'}\nDeadline: ${t.deadline || 'None'}\nSubtasks: ${t.subtasks?.length || 0} total, ${t.subtasks?.filter((s: Subtask) => s.completed).length || 0} completed`;
+
+    const question = t.completed
+      ? 'This task is completed. Provide a brief review and suggest any follow-up actions.'
+      : 'Analyze this task and suggest actionable next steps to complete it efficiently.';
+
+    this.aiService.askAssistant(question, context).subscribe({
+      next: (response) => {
+        this.aiInsight.set(response.data.answer);
+        this.aiInsightLoading.set(false);
+      },
+      error: () => {
+        this.aiInsight.set('Unable to generate AI insights at this time.');
+        this.aiInsightLoading.set(false);
+      }
+    });
   }
 
   toggleSubtask(subtask: any) {

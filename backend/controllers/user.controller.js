@@ -34,8 +34,8 @@ exports.getUsers = async (req, res) => {
 // Get users by organization
 exports.getUsersByOrganization = async (req, res) => {
   try {
-    const page = parseInt(req.query.page);
-    const limit = parseInt(req.query.limit);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     // Get the current user's organization
@@ -117,11 +117,11 @@ exports.getUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
-      return errorResponse(res, "User not found", 404);
+      return errorResponse(res, 404, "User not found");
     }
     return successResponse(res, 200, "User retrieved successfully", user);
   } catch (error) {
-    return errorResponse(res, error.message);
+    return errorResponse(res, 500, error.message);
   }
 };
 

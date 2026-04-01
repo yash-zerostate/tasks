@@ -18,17 +18,30 @@ connectDB();
 
 // Middleware
 app.use(helmet()); 
-app.use(cors({ origin: "*" }));
+app.use(cors({
+  origin: process.env.CORS_ORIGIN
+    ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+    : '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
-// Rate Limiting for Auth
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+// Rate Limiting
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { message: 'Too many requests from this IP, please try again after 15 minutes' }
 });
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { message: 'Too many auth requests from this IP, please try again after 15 minutes' }
+});
+
 app.use('/api/auth', authLimiter);
+app.use('/api', apiLimiter);
 
 // Swagger documentation options
 const swaggerOptions = {
@@ -46,6 +59,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/tasks', require('./routes/task.routes'));
 app.use('/api/users', require('./routes/user.routes'));
 app.use('/api/organizations', require('./routes/organization.routes'));
+app.use('/api/ai', require('./routes/ai.routes'));
 
 app.get('', (req, res) => {
     res.send('API is running... <br><a href="/api-docs">View API Documentation</a>');

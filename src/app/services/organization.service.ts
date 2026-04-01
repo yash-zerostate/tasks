@@ -44,20 +44,5 @@ export class OrganizationService {
   deleteOrganization(id: string): Observable<any> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
-
-  getOrganizationDetails(id: string): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
-  }
-
-  addUserToOrganization(orgId: string, userData: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/${orgId}/users`, userData);
-  }
-
-  removeUserFromOrganization(orgId: string, userId: string): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${orgId}/users/${userId}`);
-  }
-
-  updateUserRole(orgId: string, userId: string, role: string): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${orgId}/users/${userId}`, { role });
-  }
 }
+

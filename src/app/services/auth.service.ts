@@ -3,14 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Router } from '@angular/router';
-import { User, Users } from '../core/models/user.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private apiUrl = environment.apiUrl + '/auth';
-  private tokenExpirationTimer: any;
+  private tokenExpirationTimer: ReturnType<typeof setTimeout> | null = null;
 
   http = inject(HttpClient);
   router = inject(Router);
@@ -24,7 +23,7 @@ export class AuthService {
   register(user: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/register`, user).pipe(
       tap((response: any) => {
-        this.handleAuthentication(response.token, response.expiresIn, response.user.role, response.organization);
+        this.handleAuthentication(response.token, response.expiresIn, response.user.role, response.user.organization);
       })
     );
   }
@@ -32,17 +31,17 @@ export class AuthService {
   login(user: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/login`, user).pipe(
       tap((response: any) => {
-        this.handleAuthentication(response.token, response.expiresIn, response.user.role, response.organization);
+        this.handleAuthentication(response.token, response.expiresIn, response.user.role, response.user.organization);
       })
     );
   }
 
-  getUsers(): Observable<Users> {
-    return this.http.get<Users>(`${this.apiUrl}/users`);
-  }
-
   isAuthenticated(): boolean {
-    return !!sessionStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
+    if (!token) return false;
+    const expirationDate = sessionStorage.getItem('tokenExpirationDate');
+    if (!expirationDate) return false;
+    return new Date(expirationDate) > new Date();
   }
 
   isAdmin(): boolean {
@@ -71,8 +70,8 @@ export class AuthService {
     sessionStorage.removeItem('organization');
     if (this.tokenExpirationTimer) {
       clearTimeout(this.tokenExpirationTimer);
+      this.tokenExpirationTimer = null;
     }
-    // this.router.navigate(['/login']);
   }
 
   forgotPassword(email: string): Observable<any> {
@@ -119,8 +118,6 @@ export class AuthService {
     try {
       const token = this.getToken();
       if (!token) return null;
-
-      // JWT tokens are in format: header.payload.signature
       const payload = token.split('.')[1];
       const decoded = JSON.parse(atob(payload));
       return decoded._id;
@@ -130,13 +127,13 @@ export class AuthService {
   }
 
   getCurrentUser(): any {
-    // Get user data from sessionStorage instead of localStorage
     const userData = sessionStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
   }
 
   saveUserData(user: any): void {
-    // Save to sessionStorage instead of localStorage to match retrieval
     sessionStorage.setItem('user', JSON.stringify(user));
   }
 }
+
+

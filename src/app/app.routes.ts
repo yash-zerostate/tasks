@@ -78,6 +78,7 @@ export const routes: Routes = [
       import('./components/users/users-list/users-list.component').then(
         (m) => m.UsersListComponent
       ),
+    canActivate: [AuthGuard, AdminGuard],
   },
   {
     path: 'organizations',
@@ -93,7 +94,7 @@ export const routes: Routes = [
       import('./components/organizations/organization-form/organization-form.component').then(
         (m) => m.OrganizationFormComponent
       ),
-    canActivate: [AuthGuard],
+    canActivate: [AuthGuard, AdminGuard],
   },
   {
     path: 'organizations/:id',
@@ -114,3 +115,4 @@ export const routes: Routes = [
     redirectTo: '',
   },
 ];
+

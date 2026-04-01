@@ -49,6 +49,8 @@ const userSchema = new mongoose.Schema({
     ref: 'Organization',
   },
   role: { type: String, enum: ["user", "admin", "super"], default: "user" },
+  resetPasswordToken: { type: String, select: false },
+  resetPasswordExpires: { type: Date, select: false },
 });
 
 const User = mongoose.model("User", userSchema);

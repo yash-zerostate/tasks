@@ -118,12 +118,12 @@
                         @else {
                             <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                                 @for (task of pendingPaginatedTasks(); track task._id) {
-                                    <li class="py-4 hover:bg-gray-50 transition-colors rounded cursor-move dark:bg-gray-900 dark:hover:bg-gray-900" cdkDrag>
+                                    <li class="py-4 px-3 hover:bg-gray-50 transition-colors rounded cursor-move dark:hover:bg-gray-700/50" cdkDrag>
                                     <a [routerLink]="['/tasks', task._id]" class="block">
                                         <div class="flex justify-between">
                                             <div>
                                                 <h4 class="text-lg font-medium text-gray-900 dark:text-gray-100">{{ task.title }}</h4>
-                                                <p class="text-sm text-gray-600 truncate max-w-md dark:text-gray-300">{{ task.description }}</p>
+                                                <p class="text-sm text-gray-600 truncate max-w-md dark:text-gray-400">{{ task.description }}</p>
                                                 @if (getSubtaskProgress(task)) {
                                                     <div class="mt-3 w-full max-w-sm">
                                                         <div class="flex justify-between text-xs mb-1 text-gray-500 dark:text-gray-400">
@@ -138,9 +138,9 @@
                                             </div>
                                             <div class="flex flex-col items-end">
                                                 <span [ngClass]="{
-                                                    'bg-red-100 text-red-800': task.priority === 'High',
-                                                    'bg-yellow-100 text-yellow-800': task.priority === 'Medium',
-                                                    'bg-green-100 text-green-800': task.priority === 'Low'
+                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': task.priority === 'High',
+                                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': task.priority === 'Medium',
+                                                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': task.priority === 'Low'
                                                 }" class="px-2 py-1 rounded text-xs font-medium">{{ task.priority }}</span>
 
                                                 <span class="text-xs text-gray-500 mt-2 dark:text-gray-400">
@@ -186,7 +186,7 @@
                 <div class="bg-gradient-to-r from-green-500 to-green-700 p-4">
                     <h3 class="text-xl font-bold text-white flex items-center">
                         <i class="fas fa-check-circle mr-2"></i> Completed Tasks
-                        <span class="ml-2 bg-white text-green-700 text-sm py-1 px-2 rounded-full dark:bg-gray-800">{{ completedTasks().length }}</span>
+                        <span class="ml-2 bg-white text-green-700 text-sm py-1 px-2 rounded-full dark:bg-gray-800 dark:text-green-400">{{ completedTasks().length }}</span>
                     </h3>
                 </div>
 
@@ -215,21 +215,21 @@
                         @else {
                             <ul class="divide-y divide-gray-200 dark:divide-gray-700">
                                 @for (task of completedPaginatedTasks(); track task._id) {
-                                    <li class="py-4 hover:bg-gray-50 transition-colors rounded cursor-move dark:bg-gray-900 dark:hover:bg-gray-900" cdkDrag>
+                                    <li class="py-4 px-3 hover:bg-gray-50 transition-colors rounded cursor-move dark:hover:bg-gray-700/50" cdkDrag>
                                     <a [routerLink]="['/tasks', task._id]" class="block">
                                         <div class="flex justify-between">
                                             <div>
-                                                <h4 class="text-lg font-medium text-gray-700 line-through dark:text-gray-300">{{ task.title }}</h4>
-                                                <p class="text-sm text-gray-500 truncate max-w-md dark:text-gray-400">{{ task.description }}</p>
+                                                <h4 class="text-lg font-medium text-gray-500 line-through dark:text-gray-400">{{ task.title }}</h4>
+                                                <p class="text-sm text-gray-400 truncate max-w-md dark:text-gray-500">{{ task.description }}</p>
                                             </div>
                                             <div class="flex flex-col items-end">
                                                 <span [ngClass]="{
-                                                    'bg-red-50 text-red-600': task.priority === 'High',
-                                                    'bg-yellow-50 text-yellow-600': task.priority === 'Medium',
-                                                    'bg-green-50 text-green-600': task.priority === 'Low'
+                                                    'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400': task.priority === 'High',
+                                                    'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400': task.priority === 'Medium',
+                                                    'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400': task.priority === 'Low'
                                                 }" class="px-2 py-1 rounded text-xs font-medium">{{ task.priority }}</span>
 
-                                                <span class="text-xs text-gray-500 mt-2 dark:text-gray-400">
+                                                <span class="text-xs text-green-600 mt-2 dark:text-green-500">
                                                     <i class="far fa-check-circle mr-1"></i>
                                                     Completed
                                                 </span>
@@ -245,13 +245,13 @@
                             <div class="flex justify-between items-center border-t pt-4 mt-4">
                                 <button (click)="previousCompletedPage()"
                                         [disabled]="completedCurrentPage() === 1"
-                                        class="flex items-center text-sm text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors">
+                                        class="flex items-center text-sm text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors dark:text-green-500 dark:hover:text-green-400">
                                     <i class="fas fa-arrow-left mr-1"></i> Previous
                                 </button>
                                 <span class="text-sm text-gray-600 dark:text-gray-300">Page {{ completedCurrentPage() }} of {{ completedTotalPages() }}</span>
                                 <button (click)="nextCompletedPage()"
                                         [disabled]="completedCurrentPage() === completedTotalPages()"
-                                        class="flex items-center text-sm text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors">
+                                        class="flex items-center text-sm text-green-600 hover:text-green-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors dark:text-green-500 dark:hover:text-green-400">
                                     Next <i class="fas fa-arrow-right ml-1"></i>
                                 </button>
                             </div>

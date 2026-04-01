@@ -262,4 +262,47 @@ router.get('/:id/members', auth, organizationController.getOrganizationMembers);
  */
 router.post('/:id/members', auth, isAdmin, organizationController.addMemberToOrganization);
 
+/**
+ * @swagger
+ * /api/organizations/{id}/members:
+ *   delete:
+ *     tags:
+ *       - Organizations
+ *     summary: Remove member from organization
+ *     description: Remove a user from an organization (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Organization ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: string
+ *                 description: User ID to remove from organization
+ *     responses:
+ *       200:
+ *         description: Member removed successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: Organization not found
+ *       500:
+ *         description: Server error
+ */
+router.delete('/:id/members', auth, isAdmin, organizationController.removeMember);
+
 module.exports = router;

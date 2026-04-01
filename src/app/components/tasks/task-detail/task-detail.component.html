@@ -170,6 +170,31 @@
                         </button>
                     </div>
                     
+                    <!-- AI Insights -->
+                    <div class="mt-8 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-100 dark:from-purple-900/20 dark:to-indigo-900/20 dark:border-purple-800/30">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-sm font-bold text-purple-800 flex items-center dark:text-purple-400">
+                                <i class="fas fa-robot mr-2 text-purple-600 dark:text-purple-400"></i> Gemini AI Insights
+                            </h3>
+                            <button 
+                                (click)="getAiInsight()" 
+                                [disabled]="aiInsightLoading()"
+                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                @if (aiInsightLoading()) {
+                                    <i class="fas fa-spinner fa-spin mr-1"></i> Analyzing...
+                                } @else {
+                                    <i class="fas fa-wand-magic-sparkles mr-1"></i> Get AI Insight
+                                }
+                            </button>
+                        </div>
+                        @if (aiInsight()) {
+                            <p class="text-sm text-gray-700 leading-relaxed dark:text-gray-300">{{ aiInsight() }}</p>
+                        } @else if (!aiInsightLoading()) {
+                            <p class="text-xs text-purple-400 italic dark:text-purple-500">Click "Get AI Insight" to get smart suggestions for this task.</p>
+                        }
+                    </div>
+
                     <!-- Activity History -->
                     <div class="mt-12 pt-8 border-t border-gray-100 dark:border-gray-700">
                         <h3 class="text-xl font-black text-gray-800 mb-6 flex items-center dark:text-gray-100">

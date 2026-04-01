@@ -6,7 +6,7 @@ import { NgClass, DatePipe } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UsersService } from '../../../services/users.service';
-import { User } from '../../../core/models/users.model';
+import { UserItem } from '../../../core/models/users.model';
 
 @Component({
   selector: 'app-organization-detail',
@@ -22,7 +22,7 @@ export class OrganizationDetailComponent implements OnInit {
   organizationForm: FormGroup;
   addMemberForm: FormGroup;
   showAddMemberModal = signal<boolean>(false);
-  availableUsers = signal<User[]>([]);
+  availableUsers = signal<UserItem[]>([]);
   loadingUsers = signal<boolean>(false);
   
   private organizationService = inject(OrganizationService);

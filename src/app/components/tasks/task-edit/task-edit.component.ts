@@ -1,12 +1,12 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { TaskService } from '../../../services/task.service';
-import { AuthService } from '../../../services/auth.service';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { User } from '../../../core/models/user.model';
 import { NgClass } from '@angular/common';
 import { UsersService } from '../../../services/users.service';
 import { NotificationService } from '../../../services/notification.service';
+import { AiService } from '../../../services/ai.service';
 
 @Component({
   selector: 'app-task-edit',
@@ -17,19 +17,20 @@ export class TaskEditComponent implements OnInit {
   taskForm: FormGroup;
   taskId: string = '';
   loading = false;
+  usersLoading = false;
   error: string | null = null;
   minDate: string = new Date().toISOString().split('T')[0];
   users: User[] = [];
-  isloading = { set: (value: boolean) => { this.loading = value; } };
-  iserror: string | null = null;
+  usersError: string | null = null;
+  aiLoading = { subtasks: false, description: false, priority: false };
 
   router = inject(Router);
   route = inject(ActivatedRoute);
   taskService = inject(TaskService);
-  auth = inject(AuthService);
   fb = inject(FormBuilder);
   usersService = inject(UsersService);
   notificationService = inject(NotificationService);
+  aiService = inject(AiService);
 
   constructor() {
     this.taskForm = this.fb.group({
@@ -61,7 +62,6 @@ export class TaskEditComponent implements OnInit {
     this.taskId = this.route.snapshot.paramMap.get('id') || '';
     this.loading = true;
     
-    // Load task details
     this.taskService.getTaskById(this.taskId).subscribe({
       next: (response) => {
         const task = response.data;
@@ -73,7 +73,6 @@ export class TaskEditComponent implements OnInit {
           userId: task.user._id,
         });
 
-        // Load subtasks
         if (task.subtasks && task.subtasks.length > 0) {
           const subtasksFormArray = this.subtasks;
           subtasksFormArray.clear();
@@ -93,35 +92,93 @@ export class TaskEditComponent implements OnInit {
       }
     });
 
-    // Load users for assignment
-    this.getUsers();
-
     this.loadOrganizationUsers();
   }
 
   loadOrganizationUsers() {
-    this.isloading.set(true);
+    this.usersLoading = true;
     this.usersService.getUsersByOrganization().subscribe({
       next: (response) => {
         if (response.status === 'success') {
           this.users = response.data.users || [];
         }
+        this.usersLoading = false;
       },
       error: (error) => {
         console.error('Error loading users:', error);
-        this.iserror = error?.error?.message || 'Error loading users';
+        this.usersError = error?.error?.message || 'Error loading users';
+        this.usersLoading = false;
       }
     });
   }
 
-  getUsers() {
-    this.auth.getUsers().subscribe({
+  aiSuggestSubtasks() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    this.aiLoading.subtasks = true;
+
+    this.aiService.suggestSubtasks(title, description).subscribe({
       next: (response) => {
-        this.users = response;
+        const subtasksArray = this.subtasks;
+        for (const st of response.data.subtasks) {
+          subtasksArray.push(this.fb.group({ title: [st, Validators.required], completed: [false] }));
+        }
+        this.aiLoading.subtasks = false;
+        this.notificationService.success(`Added ${response.data.subtasks.length} AI-suggested subtasks.`, 'AI');
       },
-      error: (error) => {
-        console.error('Error getting users:', error);
+      error: () => {
+        this.aiLoading.subtasks = false;
+        this.notificationService.error('Failed to get AI suggestions.', 'AI Error');
+      }
+    });
+  }
+
+  aiImproveDescription() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    this.aiLoading.description = true;
+
+    this.aiService.improveDescription(title, description).subscribe({
+      next: (response) => {
+        this.taskForm.patchValue({ description: response.data.description });
+        this.aiLoading.description = false;
+        this.notificationService.success('Description improved by AI.', 'AI');
       },
+      error: () => {
+        this.aiLoading.description = false;
+        this.notificationService.error('Failed to improve description.', 'AI Error');
+      }
+    });
+  }
+
+  aiSuggestPriority() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    const deadline = this.taskForm.get('deadline')?.value;
+    this.aiLoading.priority = true;
+
+    this.aiService.suggestPriority(title, description, deadline).subscribe({
+      next: (response) => {
+        this.taskForm.patchValue({ priority: response.data.priority });
+        this.aiLoading.priority = false;
+        this.notificationService.info(`AI suggests ${response.data.priority} priority: ${response.data.reason}`, 'AI');
+      },
+      error: () => {
+        this.aiLoading.priority = false;
+        this.notificationService.error('Failed to suggest priority.', 'AI Error');
+      }
     });
   }
 

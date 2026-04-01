@@ -3,6 +3,10 @@ const User = require("../models/user.model");
 const Activity = require("../models/activity.model");
 const { successResponse, errorResponse } = require("../utils/response");
 
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Create a new task
 exports.createTask = async (req, res) => {
   try {
@@ -13,7 +17,7 @@ exports.createTask = async (req, res) => {
       return errorResponse(res, 404, "Assigned user not found");
     }
 
-    const currentUser = await User.findById(req.user._id);
+    const currentUser = req.currentUser;
     if (currentUser.role !== 'super') {
       if (!currentUser.organization || !assignedUser.organization || assignedUser.organization.toString() !== currentUser.organization.toString()) {
          return errorResponse(res, 403, "Cannot assign tasks to users outside your organization");
@@ -52,13 +56,11 @@ exports.getAllTasks = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    // Get user's organization
-    const user = await User.findById(req.user._id);
+    const user = req.currentUser;
     if (!user.organization) {
       return errorResponse(res, 400, "User is not associated with any organization");
     }
 
-    // Only return tasks for the user's organization
     const tasks = await Task.find({
       organization: user.organization
     })
@@ -90,22 +92,21 @@ exports.getOngoingTasks = async (req, res) => {
     const sortBy = req.query.sortBy || "deadline";
     const order = req.query.order === "desc" ? -1 : 1;
 
-    // Get user's organization
-    const user = await User.findById(req.user._id);
+    const user = req.currentUser;
     if (!user.organization) {
       return errorResponse(res, 400, "User is not associated with any organization");
     }
 
-    // Build filter object
     const filter = { 
       completed: false,
       organization: user.organization 
     };
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } }
+        { title: { $regex: safeSearch, $options: "i" } },
+        { description: { $regex: safeSearch, $options: "i" } }
       ];
     }
 
@@ -145,22 +146,21 @@ exports.getCompletedTasks = async (req, res) => {
     const search = req.query.search || "";
     const priority = req.query.priority || "";
 
-    // Get user's organization
-    const user = await User.findById(req.user._id);
+    const user = req.currentUser;
     if (!user.organization) {
       return errorResponse(res, 400, "User is not associated with any organization");
     }
 
-    // Build filter object
     const filter = { 
       completed: true,
       organization: user.organization 
     };
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { title: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } }
+        { title: { $regex: safeSearch, $options: "i" } },
+        { description: { $regex: safeSearch, $options: "i" } }
       ];
     }
 
@@ -221,6 +221,14 @@ exports.getTaskById = async (req, res) => {
     if (!task) {
       return errorResponse(res, 404, "Task not found");
     }
+
+    const currentUser = req.currentUser;
+    if (currentUser.role !== 'super') {
+      if (!currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
+        return errorResponse(res, 403, "Not authorized to view this task");
+      }
+    }
+
     successResponse(res, 200, "Task retrieved successfully", task);
   } catch (error) {
     errorResponse(res, 500, error.message);
@@ -234,19 +242,18 @@ exports.updateTask = async (req, res) => {
     
     const task = await Task.findById(id);
     if (!task) {
-      return res.status(404).json({ status: 'error', message: 'Task not found' });
+      return errorResponse(res, 404, "Task not found");
     }
 
-    const currentUser = await User.findById(req.user._id);
+    const currentUser = req.currentUser;
     if (currentUser.role !== 'super') {
       if (task.user.toString() !== req.user._id.toString()) {
         if (currentUser.role !== 'admin' || !currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
-           return res.status(403).json({ status: 'error', message: 'Not authorized to update this task' });
+           return errorResponse(res, 403, "Not authorized to update this task");
         }
       }
     }
     
-    // Determine action and details for logging
     let action = "updated";
     let details = "Task details updated";
 
@@ -258,14 +265,20 @@ exports.updateTask = async (req, res) => {
       details = "Checklist updated";
     }
 
-    // Update with the data from the request
+    const allowedFields = ['title', 'description', 'deadline', 'priority', 'completed', 'subtasks'];
+    const updateData = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        updateData[key] = req.body[key];
+      }
+    }
+
     const updatedTask = await Task.findByIdAndUpdate(
       id, 
-      req.body,
-      { new: true } // Return the updated document
-    ).populate('user', 'email'); // Populate user info
+      updateData,
+      { new: true }
+    ).populate('user', 'email');
     
-    // Log activity
     await new Activity({
       task: updatedTask._id,
       user: req.user._id,
@@ -274,16 +287,9 @@ exports.updateTask = async (req, res) => {
       organization: task.organization
     }).save();
 
-    return res.status(200).json({
-      status: 'success',
-      message: 'Task updated successfully',
-      data: updatedTask
-    });
+    return successResponse(res, 200, "Task updated successfully", updatedTask);
   } catch (error) {
-    return res.status(500).json({
-      status: 'error',
-      message: error.message
-    });
+    return errorResponse(res, 500, error.message);
   }
 };
 
@@ -299,7 +305,7 @@ exports.deleteTask = async (req, res) => {
       return errorResponse(res, 404, "Task not found");
     }
     
-    const currentUser = await User.findById(req.user._id);
+    const currentUser = req.currentUser;
     if (currentUser.role !== 'super') {
       if (task.user.toString() !== req.user._id.toString()) {
         if (currentUser.role !== 'admin' || !currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
@@ -329,8 +335,7 @@ exports.deleteTask = async (req, res) => {
 // Get task statistics
 exports.getTaskStats = async (req, res) => {
   try {
-    // Get user's organization
-    const user = await User.findById(req.user._id);
+    const user = req.currentUser;
     if (!user.organization) {
       return errorResponse(res, 400, "User is not associated with any organization");
     }
@@ -368,6 +373,18 @@ exports.getTaskStats = async (req, res) => {
 // Get activity log for a task
 exports.getTaskActivities = async (req, res) => {
   try {
+    const task = await Task.findById(req.params.id);
+    if (!task) {
+      return errorResponse(res, 404, "Task not found");
+    }
+
+    const currentUser = req.currentUser;
+    if (currentUser.role !== 'super') {
+      if (!currentUser.organization || !task.organization || task.organization.toString() !== currentUser.organization.toString()) {
+        return errorResponse(res, 403, "Not authorized to view this task's activities");
+      }
+    }
+
     const activities = await Activity.find({ task: req.params.id })
       .populate("user", "email")
       .sort({ createdAt: -1 });

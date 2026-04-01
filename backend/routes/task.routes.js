@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const taskController = require("../controllers/task.controller");
 const { auth, isAdmin } = require("../middleware/auth.middleware");
+const { validateCreateTask, validateObjectId } = require("../middleware/validate.middleware");
 
 /**
  * @swagger
@@ -43,7 +44,7 @@ const { auth, isAdmin } = require("../middleware/auth.middleware");
  *      500:
  *        description: Server error
  */
-router.post("/", auth, isAdmin, taskController.createTask);
+router.post("/", auth, isAdmin, validateCreateTask, taskController.createTask);
 
 /**
  * @swagger
@@ -186,7 +187,7 @@ router.get("/completed", auth, taskController.getCompletedTasks);
  *      500:
  *        description: Server error
  */
-router.get("/:id", auth, taskController.getTaskById);
+router.get("/:id", auth, validateObjectId('id'), taskController.getTaskById);
 
 /**
  * @swagger
@@ -232,7 +233,7 @@ router.get("/:id", auth, taskController.getTaskById);
  *      500:
  *        description: Server error
  */
-router.put("/:id", auth, taskController.updateTask);
+router.put("/:id", auth, validateObjectId('id'), taskController.updateTask);
 
 /**
  * @swagger
@@ -259,7 +260,7 @@ router.put("/:id", auth, taskController.updateTask);
  *      500:
  *        description: Server error
  */
-router.delete("/:id", auth, taskController.deleteTask);
+router.delete("/:id", auth, validateObjectId('id'), taskController.deleteTask);
 
 /**
  * @swagger
@@ -301,6 +302,6 @@ router.get("/summary/stats", auth, taskController.getTaskStats);
  *      500:
  *        description: Server error
  */
-router.get("/:id/activities", auth, taskController.getTaskActivities);
+router.get("/:id/activities", auth, validateObjectId('id'), taskController.getTaskActivities);
 
 module.exports = router;

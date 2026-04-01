@@ -1,8 +1,13 @@
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 
+if (!process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET environment variable is not set");
+  process.exit(1);
+}
+
 const createResponse = (res, status, message, data = null) => {
-  const response = { status: status === 200 ? "success" : "error", message };
+  const response = { status: status >= 200 && status < 300 ? "success" : "error", message };
   if (data) response.data = data;
   res.status(status).json(response);
 };

@@ -6,16 +6,12 @@ import { AuthService } from '../../services/auth.service';
 
 export const ErrorInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
-  const router = inject(Router); // Inject Router
+  const router = inject(Router);
   return next(req).pipe(
     catchError((error) => {
-      if (
-        error.status === 401 ||
-        error.status === 403 ||
-        error.status === 404
-      ) {
+      if (error.status === 401) {
         authService.logout();
-        router.navigate(['/login']); // Redirect to login after logout
+        router.navigate(['/login']);
       }
       return throwError(() => error);
     })

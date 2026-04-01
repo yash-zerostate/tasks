@@ -6,7 +6,8 @@ import { Pipe, PipeTransform } from '@angular/core';
 })
 export class ReplacePipe implements PipeTransform {
   transform(value: string, strToReplace: string, replacement: string): string {
-    if (!value) return '';
-    return value.replace(new RegExp(strToReplace, 'g'), replacement);
+    if (!value || !strToReplace) return value || '';
+    const escaped = strToReplace.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return value.replace(new RegExp(escaped, 'g'), replacement);
   }
 }

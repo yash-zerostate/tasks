@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { UsersService } from '../../../services/users.service';
-import { User } from '../../../core/models/users.model';
+import { UserItem } from '../../../core/models/users.model';
 import { NgClass } from '@angular/common';
 import { AuthService } from '../../../services/auth.service';
 
@@ -10,8 +10,8 @@ import { AuthService } from '../../../services/auth.service';
     templateUrl: './users-list.component.html',
 })
 export class UsersListComponent implements OnInit {
-  users = signal<User[]>([]);
-  paginatedUsers = signal<User[]>([]);
+  users = signal<UserItem[]>([]);
+  paginatedUsers = signal<UserItem[]>([]);
   currentPage = signal<number>(1);
   itemsPerPage = signal<number>(10);
   totalPages = signal<number>(0);

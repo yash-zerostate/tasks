@@ -13,6 +13,7 @@ import { User } from '../../../core/models/user.model';
 import { NgClass } from '@angular/common';
 import { UsersService } from '../../../services/users.service';
 import { NotificationService } from '../../../services/notification.service';
+import { AiService } from '../../../services/ai.service';
 
 @Component({
     selector: 'app-task-form',
@@ -33,9 +34,13 @@ export class TaskFormComponent {
   usersService = inject(UsersService);
   fb = inject(FormBuilder);
   notificationService = inject(NotificationService);
+  aiService = inject(AiService);
 
   loading = signal<boolean>(false);
   error = signal<string>('');
+  aiLoading = signal<{ subtasks: boolean; description: boolean; priority: boolean }>({
+    subtasks: false, description: false, priority: false
+  });
 
   constructor() {
     this.taskForm = this.fb.group({
@@ -80,6 +85,76 @@ export class TaskFormComponent {
         console.error('Error loading users:', error);
         this.error = error?.error?.message || 'Error loading users';
         this.loading.set(false);
+      }
+    });
+  }
+
+  aiSuggestSubtasks() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    this.aiLoading.update(s => ({ ...s, subtasks: true }));
+
+    this.aiService.suggestSubtasks(title, description).subscribe({
+      next: (response) => {
+        const subtasksArray = this.subtasks;
+        for (const st of response.data.subtasks) {
+          subtasksArray.push(this.fb.group({ title: [st, Validators.required], completed: [false] }));
+        }
+        this.aiLoading.update(s => ({ ...s, subtasks: false }));
+        this.notificationService.success(`Added ${response.data.subtasks.length} AI-suggested subtasks.`, 'AI');
+      },
+      error: () => {
+        this.aiLoading.update(s => ({ ...s, subtasks: false }));
+        this.notificationService.error('Failed to get AI suggestions.', 'AI Error');
+      }
+    });
+  }
+
+  aiImproveDescription() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    this.aiLoading.update(s => ({ ...s, description: true }));
+
+    this.aiService.improveDescription(title, description).subscribe({
+      next: (response) => {
+        this.taskForm.patchValue({ description: response.data.description });
+        this.aiLoading.update(s => ({ ...s, description: false }));
+        this.notificationService.success('Description improved by AI.', 'AI');
+      },
+      error: () => {
+        this.aiLoading.update(s => ({ ...s, description: false }));
+        this.notificationService.error('Failed to improve description.', 'AI Error');
+      }
+    });
+  }
+
+  aiSuggestPriority() {
+    const title = this.taskForm.get('title')?.value;
+    if (!title) {
+      this.notificationService.warning('Please enter a task title first.', 'AI');
+      return;
+    }
+    const description = this.taskForm.get('description')?.value;
+    const deadline = this.taskForm.get('deadline')?.value;
+    this.aiLoading.update(s => ({ ...s, priority: true }));
+
+    this.aiService.suggestPriority(title, description, deadline).subscribe({
+      next: (response) => {
+        this.taskForm.patchValue({ priority: response.data.priority });
+        this.aiLoading.update(s => ({ ...s, priority: false }));
+        this.notificationService.info(`AI suggests ${response.data.priority} priority: ${response.data.reason}`, 'AI');
+      },
+      error: () => {
+        this.aiLoading.update(s => ({ ...s, priority: false }));
+        this.notificationService.error('Failed to suggest priority.', 'AI Error');
       }
     });
   }

@@ -6,10 +6,12 @@ import { Meta } from '@angular/platform-browser';
 import { TrackService } from './services/track.service';
 import { Visit } from './core/models/visit.model';
 import { ToastComponent } from './shared/toast/toast.component';
+import { AiAssistantComponent } from './shared/ai-assistant/ai-assistant.component';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, FooterComponent, NavbarComponent, ToastComponent],
+  imports: [RouterOutlet, FooterComponent, NavbarComponent, ToastComponent, AiAssistantComponent],
   templateUrl: './app.component.html',
 })
 export class AppComponent implements OnInit {
@@ -21,6 +23,7 @@ export class AppComponent implements OnInit {
   visitorCountError = signal<string | null>(null);
 
   private trackService = inject(TrackService);
+  private authService = inject(AuthService);
   meta = inject(Meta);
 
   constructor() {
@@ -54,6 +57,7 @@ export class AppComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.authService.autoLogin();
     this.trackVisit();
   }
 

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth.controller');
+const { auth, isAdmin } = require('../middleware/auth.middleware');
+const { validateRegister, validateLogin } = require('../middleware/validate.middleware');
 
 /**
  * @swagger
@@ -28,9 +30,10 @@ const authController = require('../controllers/auth.controller');
  *                format: password
  *              organization:
  *                type: string
- *              role:
- *                type: string
- *                enum: [user, admin]
+ *                description: Organization name to create or join
+ *              createOrg:
+ *                type: boolean
+ *                description: If true, creates a new organization (user becomes admin)
  *    responses:
  *      201:
  *        description: User registered successfully
@@ -39,7 +42,7 @@ const authController = require('../controllers/auth.controller');
  *      500:
  *        description: Server error
  */
-router.post('/register', authController.register);
+router.post('/register', validateRegister, authController.register);
 
 /**
  * @swagger
@@ -75,7 +78,7 @@ router.post('/register', authController.register);
  *      500:
  *        description: Server error
  */
-router.post('/login', authController.login);
+router.post('/login', validateLogin, authController.login);
 
 /**
  * @swagger
@@ -107,7 +110,7 @@ router.post('/logout', authController.logout);
  *      500:
  *        description: Server error
  */
-router.get('/users', authController.getUsers);
+router.get('/users', auth, isAdmin, authController.getUsers);
 
 /**
  * @swagger
