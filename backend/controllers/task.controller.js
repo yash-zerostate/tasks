@@ -58,7 +58,12 @@ exports.getAllTasks = async (req, res) => {
 
     const user = req.currentUser;
     if (!user.organization) {
-      return errorResponse(res, 400, "User is not associated with any organization");
+      return successResponse(res, 200, "Tasks retrieved successfully", {
+        tasks: [],
+        totalTasks: 0,
+        totalPages: 0,
+        currentPage: page
+      });
     }
 
     const tasks = await Task.find({
@@ -94,7 +99,12 @@ exports.getOngoingTasks = async (req, res) => {
 
     const user = req.currentUser;
     if (!user.organization) {
-      return errorResponse(res, 400, "User is not associated with any organization");
+      return successResponse(res, 200, "Ongoing tasks retrieved successfully", {
+        tasks: [],
+        totalTasks: 0,
+        totalPages: 0,
+        currentPage: page,
+      });
     }
 
     const filter = { 
@@ -148,7 +158,12 @@ exports.getCompletedTasks = async (req, res) => {
 
     const user = req.currentUser;
     if (!user.organization) {
-      return errorResponse(res, 400, "User is not associated with any organization");
+      return successResponse(res, 200, "Completed tasks retrieved successfully", {
+        tasks: [],
+        totalTasks: 0,
+        totalPages: 0,
+        currentPage: page,
+      });
     }
 
     const filter = { 
@@ -337,7 +352,14 @@ exports.getTaskStats = async (req, res) => {
   try {
     const user = req.currentUser;
     if (!user.organization) {
-      return errorResponse(res, 400, "User is not associated with any organization");
+      return successResponse(res, 200, "Stats retrieved successfully", {
+        total: 0,
+        completed: 0,
+        pending: 0,
+        highPriority: 0,
+        mediumPriority: 0,
+        lowPriority: 0
+      });
     }
 
     const stats = await Task.aggregate([

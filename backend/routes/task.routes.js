@@ -164,6 +164,24 @@ router.get("/completed", auth, taskController.getCompletedTasks);
 
 /**
  * @swagger
+ * /api/tasks/stats:
+ *  get:
+ *    tags:
+ *      - Tasks
+ *    summary: Get task statistics
+ *    description: Retrieves aggregated stats for tasks (organization-wide)
+ *    security:
+ *      - bearerAuth: []
+ *    responses:
+ *      200:
+ *        description: Stats retrieved successfully
+ *      500:
+ *        description: Server error
+ */
+router.get("/summary/stats", auth, taskController.getTaskStats);
+
+/**
+ * @swagger
  * /api/tasks/{id}:
  *  get:
  *    tags:
@@ -261,24 +279,6 @@ router.put("/:id", auth, validateObjectId('id'), taskController.updateTask);
  *        description: Server error
  */
 router.delete("/:id", auth, validateObjectId('id'), taskController.deleteTask);
-
-/**
- * @swagger
- * /api/tasks/stats:
- *  get:
- *    tags:
- *      - Tasks
- *    summary: Get task statistics
- *    description: Retrieves aggregated stats for tasks (organization-wide)
- *    security:
- *      - bearerAuth: []
- *    responses:
- *      200:
- *        description: Stats retrieved successfully
- *      500:
- *        description: Server error
- */
-router.get("/summary/stats", auth, taskController.getTaskStats);
 
 /**
  * @swagger
