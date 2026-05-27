@@ -1,20 +1,15 @@
-import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment';
 import { Visit } from '../core/models/visit.model';
+import { DemoDataService } from './demo-data.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TrackService {
-  apiURL = environment.trackingApiUrl;
-
-  http = inject(HttpClient);
-
-  constructor() {}
+  private demoData = inject(DemoDataService);
 
   trackProjectVisit(projectName: string): Observable<Visit> {
-    return this.http.post<Visit>(this.apiURL, { projectName });
+    return this.demoData.trackVisit(projectName);
   }
 }

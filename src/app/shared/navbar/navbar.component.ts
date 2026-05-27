@@ -1,8 +1,8 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../services/theme.service';
 import { NgClass } from '@angular/common';
+import { DemoDataService } from '../../services/demo-data.service';
 
 @Component({
     selector: 'app-navbar',
@@ -10,34 +10,19 @@ import { NgClass } from '@angular/common';
     templateUrl: './navbar.component.html',
 })
 export class NavbarComponent {
-  authService = inject(AuthService);
   themeService = inject(ThemeService);
-  router = inject(Router);
+  demoData = inject(DemoDataService);
 
-  // Signal for mobile menu visibility
   showMobileMenu = signal(false);
 
-  constructor() {}
-
-  isLoggedIn(): boolean {
-    return this.authService.isAuthenticated();
-  }
-
-  isAdmin(): boolean {
-    return this.authService.isAdmin() && this.authService.isAuthenticated();
-  }
-
-  isSuperAdmin(): boolean {
-    return this.authService.isSuper() && this.authService.isAuthenticated();
-  }
-
-  logout() {
-    this.authService.logout();
-    this.router.navigate(['/login']);
-    this.showMobileMenu.set(false);
-  }
+  currentUserEmail = this.demoData.getCurrentUser().email;
 
   toggleMobileMenu() {
     this.showMobileMenu.update(value => !value);
+  }
+
+  resetDemoData() {
+    this.demoData.resetDemoData();
+    window.location.href = '/dashboard';
   }
 }

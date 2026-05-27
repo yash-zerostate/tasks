@@ -83,7 +83,7 @@ export class TaskFormComponent {
       },
       error: (error) => {
         console.error('Error loading users:', error);
-        this.error = error?.error?.message || 'Error loading users';
+        this.error.set(error?.error?.message || 'Error loading users');
         this.loading.set(false);
       }
     });
